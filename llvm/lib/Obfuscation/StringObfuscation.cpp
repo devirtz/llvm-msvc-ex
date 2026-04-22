@@ -105,11 +105,18 @@ struct StringEncryption {
 };
 } // namespace
 
+// Returns true for wide string literals: [N x i16] or [N x i32], null-terminated.
+// wchar_t is i16 on Windows targets and i32 on Linux/macOS.
+static bool isWideString(const ConstantDataSequential *CDS) {
+  Type *ElemTy = CDS->getElementType();
+  if (!ElemTy->isIntegerTy(16) && !ElemTy->isIntegerTy(32))
+    return false;
+  unsigned N = CDS->getNumElements();
+  return N > 0 && CDS->getElementAsInteger(N - 1) == 0;
+}
+
 bool StringEncryption::runOnModule(Module &M) {
   std::set<GlobalVariable *> ConstantStringUsers;
-
-  // collect all c strings
-  //  outs() << "Enter StringEncryption Pass.\n";
 
   LLVMContext &Ctx = M.getContext();
   ConstantInt *Zero = ConstantInt::get(Type::getInt32Ty(Ctx), 0);
@@ -122,13 +129,11 @@ bool StringEncryption::runOnModule(Module &M) {
     if (Init == nullptr)
       continue;
     if (ConstantDataSequential *CDS = dyn_cast<ConstantDataSequential>(Init)) {
-      if (CDS->isCString()) {
+      if (CDS->isCString() || isWideString(CDS)) {
         CSPEntry *Entry = new CSPEntry();
+        // getRawDataValues() returns the underlying bytes regardless of element
+        // type, so narrow (i8) and wide (i16/i32) strings share the same path.
         StringRef Data = CDS->getRawDataValues();
-        // const char *Data1 = Data.begin();
-        // const int32_t Size1 = Data.size();
-
-        // errs() << "String: " << Data1 << "Length: " << Size1 << "\n";
         Entry->Data.reserve(Data.size());
         for (unsigned i = 0; i < Data.size(); ++i) {
           Entry->Data.push_back(static_cast<uint8_t>(Data[i]));
