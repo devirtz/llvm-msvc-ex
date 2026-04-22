@@ -27,6 +27,7 @@
 #include <AntiIDA.h>
 #include <CodePicPass.h>
 #include <VMObfuscatorPass.h>
+#include "PolymorphicBuild.h"
 
 using namespace llvm;
 
@@ -76,6 +77,7 @@ llvm::PassPluginLibraryInfo getObfuscationPluginInfo() {
                                               OptimizationLevel Level) {
 
 
+          MPM.addPass(PolymorphicBuildPass());
           MPM.addPass(createModuleToFunctionPassAdaptor(ConstObfuscationPass()));
           MPM.addPass(createModuleToFunctionPassAdaptor(IndirectCallPass()));
           MPM.addPass(IngvObfuscationPass());

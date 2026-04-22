@@ -28,6 +28,7 @@ add_llvm_pass_plugin(Obfuscation
         AntiIDA.cpp
         CodePicPass.cpp
         SmallVmpPass.cpp
+        PolymorphicBuild.cpp
         Plugin.cpp
 
         ADDITIONAL_HEADER_DIRS
